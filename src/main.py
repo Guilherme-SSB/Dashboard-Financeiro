@@ -20,12 +20,13 @@ conn = mariadb.connect(user=os.getenv('MARIADB_USER'),
 df = pd.read_sql('''
 SELECT A.ID_ATIVO, A.DT_COTACAO, A.NR_VL_COT_FECHAMENTO_AJUSTADO, B.TX_TICKER, B.ID_CATEGORIA FROM ATIVO.TCOTACAO_LISTADOS_B3 AS A
 JOIN ATIVO.TATIVOS_LISTADOS_B3 AS B ON A.ID_ATIVO = B.ID_ATIVO
-WHERE B.ID_CATEGORIA = 1 AND A.DT_COTACAO > '2023-01-01'
+WHERE B.ID_CATEGORIA = 1 AND A.DT_COTACAO > '2020-01-01'
 ''', conn)
 
 # Layout da aplicação
 app.layout = html.Div(children=[
     html.H1(children='InvestSpot - DashBoard Financeiro'),
+    html.H2(children='Cotação de Ações'),
     dcc.Dropdown(
         id='ticker-dropdown',
         options=[{'label': ticker, 'value': ticker} for ticker in df['TX_TICKER'].unique()],
@@ -110,14 +111,18 @@ def update_comparison_graph(selected_ticker_1, selected_ticker_2, time_interval)
     filtered_df_2 = filtered_df_2.resample(time_interval).ffill()
 
     # Calcular os retornos das ações
-    returns_1 = filtered_df_1['NR_VL_COT_FECHAMENTO_AJUSTADO'].pct_change() * 100
-    returns_2 = filtered_df_2['NR_VL_COT_FECHAMENTO_AJUSTADO'].pct_change() * 100
+    returns_1 = filtered_df_1['NR_VL_COT_FECHAMENTO_AJUSTADO'].pct_change().dropna() * 100
+    returns_2 = filtered_df_2['NR_VL_COT_FECHAMENTO_AJUSTADO'].pct_change().dropna() * 100
+
+    # Ajustar os retornos para que ambas as séries comecem no mesmo ponto (0% de retorno no início)
+    returns_1_adjusted = returns_1 - returns_1.iloc[0]
+    returns_2_adjusted = returns_2 - returns_2.iloc[0]
 
     fig = {
         'data': [
-            {'x': returns_1.index, 'y': returns_1, 'type': 'line',
+            {'x': returns_1.index, 'y': returns_1_adjusted, 'type': 'line',
              'name': f'Retorno de {selected_ticker_1}'},
-            {'x': returns_2.index, 'y': returns_2, 'type': 'line',
+            {'x': returns_2.index, 'y': returns_2_adjusted, 'type': 'line',
              'name': f'Retorno de {selected_ticker_2}'},
         ],
         'layout': {
@@ -127,7 +132,6 @@ def update_comparison_graph(selected_ticker_1, selected_ticker_2, time_interval)
         }
     }
     return fig
-
 
 if __name__ == '__main__':
     app.run_server(debug=True)
