@@ -4,13 +4,10 @@ import dash
 import mariadb
 import pandas as pd
 import plotly.graph_objs as go
-from dash import dcc, html, Input, Output
+from dash import dcc, html, Input, Output, State
 from dotenv import load_dotenv
 
 load_dotenv()
-
-# Criando o aplicativo Dash
-app = dash.Dash(__name__)
 
 # Carregando dados de exemplo
 conn = mariadb.connect(user=os.getenv('MARIADB_USER'),
@@ -24,6 +21,11 @@ SELECT A.ID_ATIVO, A.DT_COTACAO, A.NR_VL_COT_FECHAMENTO_AJUSTADO, B.TX_TICKER, B
 JOIN ATIVO.TATIVOS_LISTADOS_B3 AS B ON A.ID_ATIVO = B.ID_ATIVO
 WHERE B.ID_CATEGORIA = 1 AND A.DT_COTACAO > '2020-01-01'
 ''', conn)
+
+df['DT_COTACAO'] = pd.to_datetime(df['DT_COTACAO'])  # Convertendo para o formato de data
+
+# Criando o aplicativo Dash
+app = dash.Dash(__name__)
 
 # Layout da aplicação
 app.layout = html.Div(children=[
@@ -120,9 +122,6 @@ def update_graph(selected_ticker):
 def update_comparison_graph(selected_ticker_1, selected_ticker_2, time_interval, start_date, end_date):
     filtered_df_1 = df[df['TX_TICKER'] == selected_ticker_1]
     filtered_df_2 = df[df['TX_TICKER'] == selected_ticker_2]
-
-    filtered_df_1['DT_COTACAO'] = pd.to_datetime(filtered_df_1['DT_COTACAO'])
-    filtered_df_2['DT_COTACAO'] = pd.to_datetime(filtered_df_2['DT_COTACAO'])
 
     # Filtrar o DataFrame por intervalo de data
     filtered_df_1 = filtered_df_1[(filtered_df_1['DT_COTACAO'] >= start_date) & (filtered_df_1['DT_COTACAO'] <= end_date)]
