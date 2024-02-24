@@ -1,9 +1,9 @@
 import os
-from datetime import datetime
 
 import dash
 import mariadb
 import pandas as pd
+import plotly.graph_objs as go
 from dash import dcc, html, Input, Output
 from dotenv import load_dotenv
 
@@ -86,17 +86,25 @@ app.layout = html.Div(children=[
 )
 def update_graph(selected_ticker):
     filtered_df = df[df['TX_TICKER'] == selected_ticker]
-    fig = {
-        'data': [
-            {'x': filtered_df['DT_COTACAO'], 'y': filtered_df['NR_VL_COT_FECHAMENTO_AJUSTADO'], 'type': 'line',
-             'name': 'Valor de Fechamento Ajustado'},
-        ],
-        'layout': {
-            'title': f'Cotação - {selected_ticker}',
-            'xaxis': {'title': 'Data'},
-            'yaxis': {'title': 'Valor de Fechamento Ajustado'}
-        }
-    }
+
+    # Criação do trace
+    trace = go.Scatter(
+        x=filtered_df['DT_COTACAO'],
+        y=filtered_df['NR_VL_COT_FECHAMENTO_AJUSTADO'],
+        mode='lines',
+        name='Valor de Fechamento Ajustado'
+    )
+
+    # Layout do gráfico
+    layout = go.Layout(
+        title=f'Cotação - {selected_ticker}',
+        xaxis={'title': 'Data'},
+        yaxis={'title': 'Valor de Fechamento Ajustado'}
+    )
+
+    # Criação da figura
+    fig = go.Figure(data=[trace], layout=layout)
+
     return fig
 
 
@@ -131,19 +139,25 @@ def update_comparison_graph(selected_ticker_1, selected_ticker_2, time_interval,
     returns_1 = filtered_df_1['NR_VL_COT_FECHAMENTO_AJUSTADO'].pct_change() * 100
     returns_2 = filtered_df_2['NR_VL_COT_FECHAMENTO_AJUSTADO'].pct_change() * 100
 
-    fig = {
-        'data': [
-            {'x': returns_1.index, 'y': returns_1, 'type': 'line',
-             'name': f'Retorno de {selected_ticker_1}'},
-            {'x': returns_2.index, 'y': returns_2, 'type': 'line',
-             'name': f'Retorno de {selected_ticker_2}'},
-        ],
-        'layout': {
-            'title': 'Comparação de Desempenho (Retornos)',
-            'xaxis': {'title': 'Data'},
-            'yaxis': {'title': 'Retorno (%)'}
-        }
-    }
+    fig = go.Figure()
+
+    # Adicionar trace para a primeira ação
+    fig.add_trace(go.Scatter(x=filtered_df_1.index, y=returns_1,
+                             mode='lines',
+                             name=f'Retorno de {selected_ticker_1}',
+                             hovertemplate='%{y:.2f}%<extra></extra>'))
+
+    # Adicionar trace para a segunda ação
+    fig.add_trace(go.Scatter(x=filtered_df_2.index, y=returns_2,
+                             mode='lines',
+                             name=f'Retorno de {selected_ticker_2}',
+                             hovertemplate='%{y:.2f}%<extra></extra>'))
+
+    # Layout do gráfico
+    fig.update_layout(title='Comparação de Desempenho (Retornos)',
+                      xaxis_title='Data',
+                      yaxis_title='Retorno (%)')
+
     return fig
 
 
