@@ -40,15 +40,28 @@ app.layout = html.Div(children=[
     dcc.Dropdown(
         id='ticker-dropdown-2',
         options=[{'label': ticker, 'value': ticker} for ticker in df['TX_TICKER'].unique()],
-        value=df['TX_TICKER'].iloc[1],  # Valor padrão do dropdown
+        value='PETR4',  # Valor padrão do dropdown
         searchable=True,  # Permite pesquisa
     ),
     dcc.Dropdown(
         id='ticker-dropdown-3',
         options=[{'label': ticker, 'value': ticker} for ticker in df['TX_TICKER'].unique()],
-        value=df['TX_TICKER'].iloc[2],  # Valor padrão do dropdown
+        value='VALE3',  # Valor padrão do dropdown
         searchable=True,  # Permite pesquisa
     ),
+    html.Div([
+        dcc.RadioItems(
+            id='time-interval',
+            options=[
+                {'label': 'Diário', 'value': 'D'},
+                {'label': 'Semanal', 'value': 'W'},
+                {'label': 'Mensal', 'value': 'M'},
+                {'label': 'Anual', 'value': 'Y'}
+            ],
+            value='M',  # Valor padrão
+            labelStyle={'display': 'inline-block'}
+        )
+    ]),
     dcc.Graph(
         id='comparison-graph',
     )
@@ -80,22 +93,37 @@ def update_graph(selected_ticker):
 @app.callback(
     Output('comparison-graph', 'figure'),
     [Input('ticker-dropdown-2', 'value'),
-     Input('ticker-dropdown-3', 'value')]
+     Input('ticker-dropdown-3', 'value'),
+     Input('time-interval', 'value')]
 )
-def update_comparison_graph(selected_ticker_1, selected_ticker_2):
+def update_comparison_graph(selected_ticker_1, selected_ticker_2, time_interval):
     filtered_df_1 = df[df['TX_TICKER'] == selected_ticker_1]
     filtered_df_2 = df[df['TX_TICKER'] == selected_ticker_2]
+
+    # Agrupe os dados pelo intervalo de tempo escolhido
+    filtered_df_1['DT_COTACAO'] = pd.to_datetime(filtered_df_1['DT_COTACAO'])
+    filtered_df_1.set_index('DT_COTACAO', inplace=True)
+    filtered_df_1 = filtered_df_1.resample(time_interval).ffill()
+
+    filtered_df_2['DT_COTACAO'] = pd.to_datetime(filtered_df_2['DT_COTACAO'])
+    filtered_df_2.set_index('DT_COTACAO', inplace=True)
+    filtered_df_2 = filtered_df_2.resample(time_interval).ffill()
+
+    # Calcular os retornos das ações
+    returns_1 = filtered_df_1['NR_VL_COT_FECHAMENTO_AJUSTADO'].pct_change() * 100
+    returns_2 = filtered_df_2['NR_VL_COT_FECHAMENTO_AJUSTADO'].pct_change() * 100
+
     fig = {
         'data': [
-            {'x': filtered_df_1['DT_COTACAO'], 'y': filtered_df_1['NR_VL_COT_FECHAMENTO_AJUSTADO'], 'type': 'line',
-             'name': selected_ticker_1},
-            {'x': filtered_df_2['DT_COTACAO'], 'y': filtered_df_2['NR_VL_COT_FECHAMENTO_AJUSTADO'], 'type': 'line',
-             'name': selected_ticker_2},
+            {'x': returns_1.index, 'y': returns_1, 'type': 'line',
+             'name': f'Retorno de {selected_ticker_1}'},
+            {'x': returns_2.index, 'y': returns_2, 'type': 'line',
+             'name': f'Retorno de {selected_ticker_2}'},
         ],
         'layout': {
-            'title': 'Comparação de Desempenho',
+            'title': 'Comparação de Desempenho (Retornos)',
             'xaxis': {'title': 'Data'},
-            'yaxis': {'title': 'Valor de Fechamento Ajustado'}
+            'yaxis': {'title': 'Retorno (%)'}
         }
     }
     return fig
