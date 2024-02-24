@@ -2,3 +2,4 @@ dash
 pandas
 mariadb
 python-dotenv
+dash_bootstrap_components
