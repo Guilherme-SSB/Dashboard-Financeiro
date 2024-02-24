@@ -32,14 +32,14 @@ app.layout = html.Div(children=[
         id='ticker-dropdown',
         options=[{'label': ticker, 'value': ticker} for ticker in df['TX_TICKER'].unique()],
         value=df['TX_TICKER'].iloc[0],  # Valor padrão do dropdown
-        clearable=False,
+        searchable=True,  # Permite pesquisa
     ),
     dcc.Graph(
         id='example-graph',
     )
 ])
 
-# Callback para atualizar o gráfico com base na seleção do ticker
+# Callback para atualizar o gráfico com base no texto inserido
 @app.callback(
     Output('example-graph', 'figure'),
     [Input('ticker-dropdown', 'value')]
