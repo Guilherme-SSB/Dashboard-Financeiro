@@ -1,5 +1,1 @@
-dash
-pandas
-mariadb
-python-dotenv
-dash_bootstrap_components
+pyodbc==4.0.35
