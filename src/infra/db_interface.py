@@ -28,6 +28,11 @@ class DBInterface(ABC):
         pass
 
     @abstractmethod
+    def get_engine(self):
+        """Retorna a engine do banco de dados"""
+        pass
+
+    @abstractmethod
     def execute_sql_command(self, command: str):
         """Executa um comando SQL - Geralmente uma procedure"""
         pass
