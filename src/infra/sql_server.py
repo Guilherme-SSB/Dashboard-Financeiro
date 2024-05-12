@@ -20,48 +20,63 @@ class SQLServerConnection(DBInterface):
         self.database = database.value
         self.username = os.getenv('SQL_USERNAME')
         self.password = os.getenv('SQL_PASSWORD')
-        self._connection = self._create_connection()
+        self._connection: pyodbc.Connection = None
         self._cursor = None
 
     def _create_connection(self):
-        driver_names = [x for x in pyodbc.drivers() if x.endswith(' for SQL Server')]
-        if driver_names:
-            driver_name = driver_names[0]
-        else:
-            raise Exception("No suitable driver found.")
-
-        if self.windows_auth:
-            self.conn_str = (
-                f"DRIVER={{{driver_name}}};"
-                f"SERVER={self.server};"
-                f"DATABASE={self.database};"
-                f"Trusted_Connection=yes;"
-            )
+        if self._connection is not None and not self._connection.closed:
+            # conexão já criada
+            pass
 
         else:
-            self.conn_str = (
-                f"DRIVER={{{driver_name}}};"
-                f"SERVER={self.server};"
-                f"DATABASE={self.database};"
-                f"UID={self.username};"
-                f"PWD={self.password}"
-            )
+            driver_names = [x for x in pyodbc.drivers() if x.endswith(' for SQL Server')]
+            if driver_names:
+                driver_name = driver_names[0]
+            else:
+                raise Exception("No suitable driver found.")
 
-        return pyodbc.connect(self.conn_str)
+            if self.windows_auth:
+                self.conn_str = (
+                    f"DRIVER={{{driver_name}}};"
+                    f"SERVER={self.server};"
+                    f"DATABASE={self.database};"
+                    f"Trusted_Connection=yes;"
+                )
 
-    def _close_connection(self):
-        if self._connection:
+            else:
+                self.conn_str = (
+                    f"DRIVER={{{driver_name}}};"
+                    f"SERVER={self.server};"
+                    f"DATABASE={self.database};"
+                    f"UID={self.username};"
+                    f"PWD={self.password}"
+                )
+
+            self._connection = pyodbc.connect(self.conn_str)
+
+        # return pyodbc.connect(self.conn_str)
+
+    def _close_connection(self) -> None:
+        if self._connection is not None:
             self._connection.close()
+        else:
+            # conexão já fechada ou inexistente
+            pass
 
     def _create_cursor(self):
         self._create_connection()
         self._cursor = self._connection.cursor()
         return self._cursor
 
-    def _close_cursor(self):
-        if self._cursor:
-            self._cursor.close()
-        self._close_connection()
+    def _close_cursor(self) -> None:
+        if self._connection is not None:
+            if type(self._connection) is pyodbc.Connection:
+                if self._connection.cursor() is not None:
+                    self._cursor.close()
+                else:
+                    # cursor já fechado ou inexistente
+                    pass
+                self._close_connection()
 
     def get_engine(self):
         params = urllib.parse.quote_plus(self.conn_str)
@@ -74,8 +89,8 @@ class SQLServerConnection(DBInterface):
             self._cursor.execute(command)
             self._cursor.commit()
         except Exception as e:
-            print(f"Error: {e}")
             self._cursor.rollback()
+            raise Exception(f"Error: {e}")
         self._close_cursor()
 
     def select_data(self, select_cmd: str) -> List[Dict[str, Any]]:
