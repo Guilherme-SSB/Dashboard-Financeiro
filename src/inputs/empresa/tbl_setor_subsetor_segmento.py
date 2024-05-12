@@ -65,6 +65,6 @@ if __name__ == '__main__':
     print(_df.head())
     print('-' * 60)
 
-    # cadastrar_setores()
-    # cadastrar_subsetor()
-    # cadastrar_segmento()
+    cadastrar_setores()
+    cadastrar_subsetor()
+    cadastrar_segmento()

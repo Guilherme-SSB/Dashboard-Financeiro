@@ -12,16 +12,16 @@ df.rename(columns={'index': 'ID'}, inplace=True)
 dict_cols = {j: i for i, j in enumerate(df.columns)}
 
 # Recriar a tabela tbl_mercado
-sql_conn.execute_sql_command('DROP TABLE tbl_mercado')
-sql_conn.execute_sql_command('''
-CREATE TABLE tbl_mercado
-(
-    ID INT IDENTITY(1,1) PRIMARY KEY,
-    SIGLA_MERCADO VARCHAR(20) NOT NULL,
-    NM_MERCADO VARCHAR(100) NOT NULL,
-    DT_HR_ATUALIZACAO_UTC DATETIME NOT NULL
-);
-''')
+sql_conn.execute_sql_command('DELETE FROM tbl_mercado')
+# sql_conn.execute_sql_command('''
+# CREATE TABLE tbl_mercado
+# (
+#     ID INT IDENTITY(1,1) PRIMARY KEY,
+#     SIGLA_MERCADO VARCHAR(20) NOT NULL,
+#     NM_MERCADO VARCHAR(100) NOT NULL,
+#     DT_HR_ATUALIZACAO_UTC DATETIME NOT NULL
+# );
+# ''')
 
 for row in df.values:
     sigla = row[dict_cols['SIGLA_MERCADO']]

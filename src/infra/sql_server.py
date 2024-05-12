@@ -1,10 +1,11 @@
 import os
-from typing import Any, Dict, List
+import urllib
+from typing import Any, Dict, List, Union
 
+import pandas as pd
 import pyodbc
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
-import urllib
 
 from src.infra.db_interface import DBInterface
 from src.models.db import DatabaseType
@@ -93,7 +94,7 @@ class SQLServerConnection(DBInterface):
             raise Exception(f"Error: {e}")
         self._close_cursor()
 
-    def select_data(self, select_cmd: str) -> List[Dict]:
+    def select_data(self, select_cmd: str, return_as_dataframe: bool = False) -> Union[List[Dict], pd.DataFrame]:
         self._create_cursor()
         try:
             self._cursor.execute(select_cmd)
@@ -103,6 +104,10 @@ class SQLServerConnection(DBInterface):
             result = []
             for row in rows:
                 result.append(dict(zip(columns, row)))
+
+            if return_as_dataframe:
+                return pd.DataFrame(result)
+
             return result
         except Exception as e:
             self._close_cursor()
