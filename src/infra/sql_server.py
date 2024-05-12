@@ -93,10 +93,21 @@ class SQLServerConnection(DBInterface):
             raise Exception(f"Error: {e}")
         self._close_cursor()
 
-    def select_data(self, select_cmd: str) -> List[Dict[str, Any]]:
-        self._cursor.execute(select_cmd)
-        columns = [column[0] for column in self._cursor.description]
-        return [dict(zip(columns, row)) for row in self._cursor.fetchall()]
+    def select_data(self, select_cmd: str) -> List[Dict]:
+        self._create_cursor()
+        try:
+            self._cursor.execute(select_cmd)
+            rows = self._cursor.fetchall()
+            columns = [column[0] for column in self._cursor.description]
+            self._close_cursor()
+            result = []
+            for row in rows:
+                result.append(dict(zip(columns, row)))
+            return result
+        except Exception as e:
+            self._close_cursor()
+            print(str(e))
+            raise e
 
     def get_cursors_from_procedure(self, procedure_name: str, params: Dict[str, Any]) -> List[Dict[Any, Any]]:
         self._cursor.execute(f"EXEC {procedure_name} {', '.join([f'@{k}={v}' for k, v in params.items()])}")
