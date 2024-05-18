@@ -4,6 +4,8 @@ import dash_bootstrap_components as dbc
 import plotly.express as px
 from src.infra.sql_server import SQLServerConnection
 from src.models.db import DatabaseType
+import pandas as pd
+
 
 # Instanciação das Conexões SQL
 SQL_CONN_EMPRESA = SQLServerConnection(database=DatabaseType.EMPRESA, windows_auth=True)
@@ -22,7 +24,7 @@ def create_layout(app, df_ativos):
             html.Label("Escolha o ativo"),
             dcc.Dropdown(
                 id='input-ativo',
-                options=[{'label': ativo, 'value': ativo} for ativo in df_ativos['TICKER'].unique()],
+                options=[{'label': ativo, 'value': ativo} for ativo in df_ativos['TICKER'].sort_values().unique()],
                 value=[],
                 multi=True,
                 className="dropdown"
@@ -75,9 +77,9 @@ def update_table_and_graph(n_clicks, ativos):
     if df_cotacoes.empty:
         return [], [], ""
 
-    # Retorna diretamente as colunas e os dados do DataTable
-    columns = [{'name': col, 'id': col} for col in df_cotacoes.columns]
-    data = df_cotacoes.to_dict('records')
+    # Converte a coluna de data para datetime e ordena por data
+    df_cotacoes['DT_COTACAO'] = pd.to_datetime(df_cotacoes['DT_COTACAO'])
+    df_cotacoes = df_cotacoes.sort_values('DT_COTACAO')
 
     # Criar gráfico de preços ajustados
     fig = px.line(df_cotacoes, x='DT_COTACAO', y='VL_FECHAMENTO_AJUSTADO', color='TICKER',
@@ -85,6 +87,16 @@ def update_table_and_graph(n_clicks, ativos):
                   title='Preços Ajustados dos Ativos')
 
     graph = dcc.Graph(id='graph-preco-ajustado', figure=fig)
+
+    # Pega as ultimas 10 datas
+    df_cotacoes = df_cotacoes.sort_values('DT_COTACAO', ascending=False).groupby('TICKER').head(10)
+
+    # Ordena por data e ticker
+    df_cotacoes = df_cotacoes.sort_values(['DT_COTACAO', 'TICKER'])
+
+    # Retorna diretamente as colunas e os dados do DataTable
+    columns = [{'name': col, 'id': col} for col in df_cotacoes.columns]
+    data = df_cotacoes.to_dict('records')
 
     return columns, data, graph
 
