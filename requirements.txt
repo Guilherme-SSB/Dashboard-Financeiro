@@ -5,3 +5,4 @@ SQLAlchemy~=2.0.30
 requests~=2.31.0
 openpyxl
 tqdm
+yfinance
