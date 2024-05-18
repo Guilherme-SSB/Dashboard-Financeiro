@@ -6,3 +6,5 @@ requests~=2.31.0
 openpyxl
 tqdm
 yfinance
+dash
+dash-bootstrap-components
