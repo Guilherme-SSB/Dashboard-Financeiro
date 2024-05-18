@@ -44,8 +44,6 @@ def create_layout(app, df_ativos):
     State('input-ativo', 'value')
 )
 def update_table(n_clicks, ativos):
-    print(f"Ativos recebidos: {ativos}")  # Log de depuração para verificar os ativos recebidos
-
     if not ativos:
         return [], []
 
@@ -67,7 +65,6 @@ def update_table(n_clicks, ativos):
                     WHERE B.TICKER IN {ativos_selected}
                     """
 
-
     df_cotacoes = SQL_CONN_ATIVO.select_data(query, return_as_dataframe=True)
 
     # Se a consulta SQL não retornar resultados, retorne colunas e dados vazios
@@ -83,7 +80,12 @@ def update_table(n_clicks, ativos):
 
 def get_data():
     # Recupera os ativos
-    df_ativos_listados_b3 = SQL_CONN_ATIVO.select_data('SELECT * FROM tbl_ativos_listados_b3', return_as_dataframe=True)
+    df_ativos_listados_b3 = SQL_CONN_ATIVO.select_data("""SELECT *
+                                                                    FROM tbl_ativos_listados_b3 AS A
+                                                                    JOIN tbl_cotacao_listados_b3 AS B
+                                                                    ON A.ID = B.ID_ATIVO
+                                                                    WHERE B.DT_COTACAO IS NOT NULL """,
+                                                       return_as_dataframe=True)
     return df_ativos_listados_b3
 
 
