@@ -106,29 +106,29 @@ def update_table_and_graph(n_clicks, ativos, comparacao, periodo):
                     WHERE B.TICKER IN {ativos_selected}
                     """
 
-        df_cotacoes = SQL_CONN_ATIVO.select_data(query, return_as_dataframe=True)
+        df_comparacao = SQL_CONN_ATIVO.select_data(query, return_as_dataframe=True)
 
         # Se a consulta SQL não retornar resultados, retorne colunas e dados vazios e um gráfico vazio
-        if df_cotacoes.empty:
+        if df_comparacao.empty:
             return [], [], ""
 
         # Converte a coluna de data para datetime e ordena por data
-        df_cotacoes['DT_COTACAO'] = pd.to_datetime(df_cotacoes['DT_COTACAO'])
-        df_cotacoes = df_cotacoes.sort_values('DT_COTACAO')
+        df_comparacao['DT_COTACAO'] = pd.to_datetime(df_comparacao['DT_COTACAO'])
+        df_comparacao = df_comparacao.sort_values('DT_COTACAO')
 
         # Verifica o tipo de comparação escolhido
         if comparacao == 'rentabilidade':
             # Calcula a rentabilidade com base no período selecionado
-            df_cotacoes = calculate_cumulative_returns(df_cotacoes, periodo)
+            df_comparacao = calculate_cumulative_returns(df_comparacao, periodo)
 
             # Cria o gráfico de linha
-            fig = px.line(df_cotacoes, x='DT_COTACAO', y='RENTABILIDADE', color='TICKER',
-                          labels={'DT_COTACAO': 'Data', 'RENTABILIDADE': 'Rentabilidade'},
+            fig = px.line(df_comparacao, x='DT_COTACAO', y='RENTABILIDADE_ACUMULADA', color='TICKER',
+                          labels={'df_comparacao': 'Data', 'RENTABILIDADE': 'Rentabilidade'},
                           title='Rentabilidade de Ativos')
 
         else:
             # Cria o gráfico de linha
-            fig = px.line(df_cotacoes, x='DT_COTACAO', y='VL_FECHAMENTO_AJUSTADO', color='TICKER',
+            fig = px.line(df_comparacao, x='DT_COTACAO', y='VL_FECHAMENTO_AJUSTADO', color='TICKER',
                           labels={'DT_COTACAO': 'Data', 'VL_FECHAMENTO_AJUSTADO': 'Preço Fechamento Ajustado'},
                           title='Comparação de Ativos')
 
@@ -136,14 +136,14 @@ def update_table_and_graph(n_clicks, ativos, comparacao, periodo):
         graph = dcc.Graph(id='graph-preco-ajustado', figure=fig)
 
         # Pega as últimas 10 datas
-        df_cotacoes = df_cotacoes.sort_values('DT_COTACAO', ascending=False).groupby('TICKER').head(10)
+        df_comparacao = df_comparacao.sort_values('DT_COTACAO', ascending=False).groupby('TICKER').head(10)
 
         # Ordena por data e ticker
-        df_cotacoes = df_cotacoes.sort_values(['DT_COTACAO', 'TICKER'])
+        df_comparacao = df_comparacao.sort_values(['DT_COTACAO', 'TICKER'])
 
         # Retorna diretamente as colunas e os dados do DataTable
-        columns = [{'name': col, 'id': col} for col in df_cotacoes.columns]
-        data = df_cotacoes.to_dict('records')
+        columns = [{'name': col, 'id': col} for col in df_comparacao.columns]
+        data = df_comparacao.to_dict('records')
 
         return columns, data, graph
 
@@ -156,13 +156,11 @@ def calculate_cumulative_returns(df, periodo):
     df['DT_COTACAO'] = pd.to_datetime(df['DT_COTACAO'])
     df.set_index('DT_COTACAO', inplace=True)
 
-    # Agrupa por ticker e resample de acordo com o período selecionado
-    grouped = df.groupby('TICKER').resample(periodo).last().reset_index(level='DT_COTACAO')
-    grouped.reset_index(drop=True, inplace=True)
+    grouped = df.groupby('TICKER').resample(periodo).last().reset_index(level='DT_COTACAO').reset_index(drop=True)
 
-    # Calcula a rentabilidade cumulativa com base no resample
-    grouped['RENTABILIDADE'] = grouped.groupby('TICKER')['VL_FECHAMENTO_AJUSTADO'].pct_change().add(1).cumprod().sub(1)
-    grouped.dropna(inplace=True)
+    # Calcula a rentabilidade acumulada ajustada
+    grouped['RENTABILIDADE'] = grouped.groupby('TICKER')['VL_FECHAMENTO_AJUSTADO'].pct_change().fillna(0)
+    grouped['RENTABILIDADE_ACUMULADA'] = grouped.groupby('TICKER')['RENTABILIDADE'].apply(lambda x: (x + 1).cumprod() - 1).reset_index(drop=True)
 
     return grouped
 
