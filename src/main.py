@@ -5,7 +5,7 @@ import plotly.express as px
 from src.infra.sql_server import SQLServerConnection
 from src.models.db import DatabaseType
 import pandas as pd
-
+from datetime import datetime, timedelta
 
 # Instanciação das Conexões SQL
 SQL_CONN_EMPRESA = SQLServerConnection(database=DatabaseType.EMPRESA, windows_auth=True)
@@ -34,6 +34,39 @@ def create_layout(app, df_ativos):
         # Botão para acionar a pesquisa
         html.Button('Pesquisar', id='button-pesquisar', n_clicks=0),
 
+        # Escolha do tipo de gráfico
+        html.Div([
+            html.Label("Escolha o tipo de comparação"),
+            dcc.RadioItems(
+                id='input-comparacao',
+                options=[
+                    {'label': 'Comparar Preços', 'value': 'precos'},
+                    {'label': 'Comparar Rentabilidade', 'value': 'rentabilidade'}
+                ],
+                value='precos',
+                className="radio-items"
+            ),
+        ], className="form-group"),
+
+        # Div para a escolha do período de rentabilidade
+        html.Div([
+            html.Label("Escolha o período de rentabilidade"),
+            dcc.Dropdown(
+                id='input-periodo-rentabilidade',
+                options=[
+                    {'label': 'Diário', 'value': '1D'},
+                    {'label': 'Semanal', 'value': '7D'},
+                    {'label': 'Mensal', 'value': '30D'},
+                    {'label': 'Trimestral', 'value': '90D'},
+                    {'label': 'Anual', 'value': '1Y'},
+                    {'label': '5 Anos', 'value': '5Y'},
+                    {'label': 'Tudo', 'value': 'all'}
+                ],
+                value='1D',
+                className="dropdown"
+            ),
+        ], className="form-group"),
+
         # Div que conterá o gráfico
         html.Div(id='graph-container'),
 
@@ -47,9 +80,11 @@ def create_layout(app, df_ativos):
     Output('table-cotacoes', 'data'),
     Output('graph-container', 'children'),
     Input('button-pesquisar', 'n_clicks'),
-    State('input-ativo', 'value')
+    State('input-ativo', 'value'),
+    State('input-comparacao', 'value'),
+    State('input-periodo-rentabilidade', 'value')
 )
-def update_table_and_graph(n_clicks, ativos):
+def update_table_and_graph(n_clicks, ativos, comparacao, periodo):
     if n_clicks == 0 or not ativos:
         return [], [], ""
 
@@ -71,34 +106,65 @@ def update_table_and_graph(n_clicks, ativos):
                     WHERE B.TICKER IN {ativos_selected}
                     """
 
-    df_cotacoes = SQL_CONN_ATIVO.select_data(query, return_as_dataframe=True)
+        df_cotacoes = SQL_CONN_ATIVO.select_data(query, return_as_dataframe=True)
 
-    # Se a consulta SQL não retornar resultados, retorne colunas e dados vazios e um gráfico vazio
-    if df_cotacoes.empty:
-        return [], [], ""
+        # Se a consulta SQL não retornar resultados, retorne colunas e dados vazios e um gráfico vazio
+        if df_cotacoes.empty:
+            return [], [], ""
 
-    # Converte a coluna de data para datetime e ordena por data
-    df_cotacoes['DT_COTACAO'] = pd.to_datetime(df_cotacoes['DT_COTACAO'])
-    df_cotacoes = df_cotacoes.sort_values('DT_COTACAO')
+        # Converte a coluna de data para datetime e ordena por data
+        df_cotacoes['DT_COTACAO'] = pd.to_datetime(df_cotacoes['DT_COTACAO'])
+        df_cotacoes = df_cotacoes.sort_values('DT_COTACAO')
 
-    # Criar gráfico de preços ajustados
-    fig = px.line(df_cotacoes, x='DT_COTACAO', y='VL_FECHAMENTO_AJUSTADO', color='TICKER',
-                  labels={'DT_COTACAO': 'Data', 'VL_FECHAMENTO_AJUSTADO': 'Preço Fechamento Ajustado'},
-                  title='Preços Ajustados dos Ativos')
+        # Verifica o tipo de comparação escolhido
+        if comparacao == 'rentabilidade':
+            # Calcula a rentabilidade com base no período selecionado
+            df_cotacoes = calculate_cumulative_returns(df_cotacoes, periodo)
 
-    graph = dcc.Graph(id='graph-preco-ajustado', figure=fig)
+            # Cria o gráfico de linha
+            fig = px.line(df_cotacoes, x='DT_COTACAO', y='RENTABILIDADE', color='TICKER',
+                          labels={'DT_COTACAO': 'Data', 'RENTABILIDADE': 'Rentabilidade'},
+                          title='Rentabilidade de Ativos')
 
-    # Pega as ultimas 10 datas
-    df_cotacoes = df_cotacoes.sort_values('DT_COTACAO', ascending=False).groupby('TICKER').head(10)
+        else:
+            # Cria o gráfico de linha
+            fig = px.line(df_cotacoes, x='DT_COTACAO', y='VL_FECHAMENTO_AJUSTADO', color='TICKER',
+                          labels={'DT_COTACAO': 'Data', 'VL_FECHAMENTO_AJUSTADO': 'Preço Fechamento Ajustado'},
+                          title='Comparação de Ativos')
 
-    # Ordena por data e ticker
-    df_cotacoes = df_cotacoes.sort_values(['DT_COTACAO', 'TICKER'])
+        # Monta o gráfico com a tabela
+        graph = dcc.Graph(id='graph-preco-ajustado', figure=fig)
 
-    # Retorna diretamente as colunas e os dados do DataTable
-    columns = [{'name': col, 'id': col} for col in df_cotacoes.columns]
-    data = df_cotacoes.to_dict('records')
+        # Pega as últimas 10 datas
+        df_cotacoes = df_cotacoes.sort_values('DT_COTACAO', ascending=False).groupby('TICKER').head(10)
 
-    return columns, data, graph
+        # Ordena por data e ticker
+        df_cotacoes = df_cotacoes.sort_values(['DT_COTACAO', 'TICKER'])
+
+        # Retorna diretamente as colunas e os dados do DataTable
+        columns = [{'name': col, 'id': col} for col in df_cotacoes.columns]
+        data = df_cotacoes.to_dict('records')
+
+        return columns, data, graph
+
+
+def calculate_cumulative_returns(df, periodo):
+    # Convertendo os valores de 'VL_FECHAMENTO_AJUSTADO' para float
+    df['VL_FECHAMENTO_AJUSTADO'] = df['VL_FECHAMENTO_AJUSTADO'].astype(float)
+
+    # Define a coluna de data como índice
+    df['DT_COTACAO'] = pd.to_datetime(df['DT_COTACAO'])
+    df.set_index('DT_COTACAO', inplace=True)
+
+    # Agrupa por ticker e resample de acordo com o período selecionado
+    grouped = df.groupby('TICKER').resample(periodo).last().reset_index(level='DT_COTACAO')
+    grouped.reset_index(drop=True, inplace=True)
+
+    # Calcula a rentabilidade cumulativa com base no resample
+    grouped['RENTABILIDADE'] = grouped.groupby('TICKER')['VL_FECHAMENTO_AJUSTADO'].pct_change().add(1).cumprod().sub(1)
+    grouped.dropna(inplace=True)
+
+    return grouped
 
 
 def get_data():
