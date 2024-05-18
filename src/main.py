@@ -8,7 +8,8 @@ from src.models.db import DatabaseType
 SQL_CONN_EMPRESA = SQLServerConnection(database=DatabaseType.EMPRESA, windows_auth=True)
 SQL_CONN_ATIVO = SQLServerConnection(database=DatabaseType.ATIVO, windows_auth=True)
 
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
+# app = dash.Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
+app = dash.Dash(__name__)
 
 
 def create_layout(app, df_ativos):
@@ -55,7 +56,6 @@ def update_table(n_clicks, ativos):
                     ON A.ID_ATIVO = B.ID
                     WHERE B.TICKER = '{ativos[0]}'
                     """
-
     else:
         # Transforme a lista ['PETR4', 'BPAC5'] em ('PETR4', 'BPAC5')
         ativos_selected = tuple(ativos)
@@ -67,12 +67,12 @@ def update_table(n_clicks, ativos):
                     WHERE B.TICKER IN {ativos_selected}
                     """
 
-    print(f"Query executada: {query}")
 
     df_cotacoes = SQL_CONN_ATIVO.select_data(query, return_as_dataframe=True)
 
-    # Verificar se a consulta SQL retornou resultados
-    print(f"Resultados da consulta: {df_cotacoes}")  # Log de depuração para verificar os resultados
+    # Se a consulta SQL não retornar resultados, retorne colunas e dados vazios
+    if df_cotacoes.empty:
+        return [], []
 
     # Retorna diretamente as colunas e os dados do DataTable
     columns = [{'name': col, 'id': col} for col in df_cotacoes.columns]
