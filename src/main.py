@@ -1,6 +1,7 @@
 import dash
 from dash import html, dcc, Output, Input, State, dash_table
 import dash_bootstrap_components as dbc
+import plotly.express as px
 from src.infra.sql_server import SQLServerConnection
 from src.models.db import DatabaseType
 
@@ -8,7 +9,6 @@ from src.models.db import DatabaseType
 SQL_CONN_EMPRESA = SQLServerConnection(database=DatabaseType.EMPRESA, windows_auth=True)
 SQL_CONN_ATIVO = SQLServerConnection(database=DatabaseType.ATIVO, windows_auth=True)
 
-# app = dash.Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
 app = dash.Dash(__name__)
 
 
@@ -32,6 +32,9 @@ def create_layout(app, df_ativos):
         # Botão para acionar a pesquisa
         html.Button('Pesquisar', id='button-pesquisar', n_clicks=0),
 
+        # Div que conterá o gráfico
+        html.Div(id='graph-container'),
+
         # Tabela para exibir os resultados da pesquisa
         dash_table.DataTable(id='table-cotacoes')
     ])
@@ -40,12 +43,13 @@ def create_layout(app, df_ativos):
 @app.callback(
     Output('table-cotacoes', 'columns'),
     Output('table-cotacoes', 'data'),
+    Output('graph-container', 'children'),
     Input('button-pesquisar', 'n_clicks'),
     State('input-ativo', 'value')
 )
-def update_table(n_clicks, ativos):
-    if not ativos:
-        return [], []
+def update_table_and_graph(n_clicks, ativos):
+    if n_clicks == 0 or not ativos:
+        return [], [], ""
 
     if len(ativos) == 1:
         query = f"""SELECT B.TICKER, A.DT_COTACAO, A.VL_FECHAMENTO_AJUSTADO
@@ -67,24 +71,31 @@ def update_table(n_clicks, ativos):
 
     df_cotacoes = SQL_CONN_ATIVO.select_data(query, return_as_dataframe=True)
 
-    # Se a consulta SQL não retornar resultados, retorne colunas e dados vazios
+    # Se a consulta SQL não retornar resultados, retorne colunas e dados vazios e um gráfico vazio
     if df_cotacoes.empty:
-        return [], []
+        return [], [], ""
 
     # Retorna diretamente as colunas e os dados do DataTable
     columns = [{'name': col, 'id': col} for col in df_cotacoes.columns]
     data = df_cotacoes.to_dict('records')
 
-    return columns, data
+    # Criar gráfico de preços ajustados
+    fig = px.line(df_cotacoes, x='DT_COTACAO', y='VL_FECHAMENTO_AJUSTADO', color='TICKER',
+                  labels={'DT_COTACAO': 'Data', 'VL_FECHAMENTO_AJUSTADO': 'Preço Fechamento Ajustado'},
+                  title='Preços Ajustados dos Ativos')
+
+    graph = dcc.Graph(id='graph-preco-ajustado', figure=fig)
+
+    return columns, data, graph
 
 
 def get_data():
     # Recupera os ativos
     df_ativos_listados_b3 = SQL_CONN_ATIVO.select_data("""SELECT *
-                                                                    FROM tbl_ativos_listados_b3 AS A
-                                                                    JOIN tbl_cotacao_listados_b3 AS B
-                                                                    ON A.ID = B.ID_ATIVO
-                                                                    WHERE B.DT_COTACAO IS NOT NULL """,
+                                                          FROM tbl_ativos_listados_b3 AS A
+                                                          JOIN tbl_cotacao_listados_b3 AS B
+                                                          ON A.ID = B.ID_ATIVO
+                                                          WHERE B.DT_COTACAO IS NOT NULL """,
                                                        return_as_dataframe=True)
     return df_ativos_listados_b3
 
