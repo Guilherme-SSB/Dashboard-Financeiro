@@ -7,6 +7,7 @@ from src.app.comparador_ativos.callbacks import create_callbacks
 
 # Crie uma instância da aplicação Dash
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
+app.config.suppress_callback_exceptions = True
 # app = dash.Dash(__name__)
 
 
