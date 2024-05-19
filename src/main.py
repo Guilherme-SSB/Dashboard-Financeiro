@@ -1,13 +1,13 @@
 import dash
 import dash_bootstrap_components as dbc
-from dash import html, dcc, Output, Input
+from dash import html, dcc, Output, Input, State
 
 from src.app.comparador_ativos.layout import comparador_layout
 from src.app.comparador_ativos.callbacks import create_callbacks
 
 # Crie uma instância da aplicação Dash
-# app = dash.Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
-app = dash.Dash(__name__)
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
+# app = dash.Dash(__name__)
 
 
 # Layout da tela inicial
@@ -39,7 +39,6 @@ def display_page(pathname):
 
 # Chame a função create_callbacks para adicionar os callbacks
 create_callbacks(app)
-
 
 if __name__ == '__main__':
     app.layout = html.Div([

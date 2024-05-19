@@ -1,7 +1,6 @@
-import dash_core_components as dcc
 import pandas as pd
 import plotly.express as px
-from dash import Output, Input, State
+from dash import Output, Input, State, dcc
 
 from src.app.comparador_ativos.layout import get_ativos_listados_b3
 from src.infra.sql_server import SQLServerConnection
@@ -69,6 +68,15 @@ def create_callbacks(app):
             fig = px.line(df_comparacao, x='DT_COTACAO', y='VL_FECHAMENTO_AJUSTADO', color='TICKER',
                           labels={'DT_COTACAO': 'Data', 'VL_FECHAMENTO_AJUSTADO': 'Preço Fechamento Ajustado'},
                           title='Comparação de Ativos')
+
+        # Estilo do tema escuro para o gráfico
+        fig.update_layout(
+            plot_bgcolor='rgb(30, 30, 30)',
+            paper_bgcolor='rgb(30, 30, 30)',
+            font=dict(color='white'),
+            xaxis=dict(showgrid=False, zerolinecolor='rgb(70, 70, 70)'),
+            yaxis=dict(showgrid=True, gridcolor='rgb(70, 70, 70)')
+        )
 
         # Monta o gráfico com a tabela
         graph = dcc.Graph(id='graph-preco-ajustado', figure=fig)

@@ -28,19 +28,27 @@ def comparador_layout():
 
         # Formulário para pesquisar por um ativo
         html.Div([
-            html.Label("Escolha o ativo"),
+            html.Label("Escolha o ativo", style={'color': 'white'}),
             dcc.Dropdown(
                 id='input-ativo',
-                options=[{'label': ativo, 'value': ativo} for ativo in
-                         df_ativos['TICKER'].sort_values().unique()],
+                options=[{'label': ativo, 'value': ativo} for ativo in df_ativos['TICKER'].sort_values().unique()],
                 value=[],
                 multi=True,
-                className="dropdown"
+                className="dropdown",
+                style={
+                    'backgroundColor': 'rgb(50, 50, 50)',
+                    'color': 'white'
+                }
             ),
         ], className="form-group"),
 
         # Botão para acionar a pesquisa
-        html.Button('Pesquisar', id='button-pesquisar', n_clicks=0),
+        html.Button(
+            'Pesquisar',
+            id='button-pesquisar',
+            n_clicks=0,
+            className="btn-dark-theme"
+        ),
 
         # Escolha do tipo de gráfico
         html.Div([
@@ -58,7 +66,7 @@ def comparador_layout():
 
         # Div para a escolha do período de rentabilidade
         html.Div([
-            html.Label("Escolha o período de rentabilidade"),
+            html.Label("Escolha o período de rentabilidade", style={'color': 'white'}),
             dcc.Dropdown(
                 id='input-periodo-rentabilidade',
                 options=[
@@ -71,7 +79,11 @@ def comparador_layout():
                     {'label': 'Tudo', 'value': 'all'}
                 ],
                 value='1D',
-                className="dropdown"
+                className="dropdown",
+                style={
+                    'backgroundColor': 'rgb(50, 50, 50)',
+                    'color': 'white'
+                }
             ),
         ], className="form-group"),
 
@@ -79,5 +91,9 @@ def comparador_layout():
         html.Div(id='graph-container'),
 
         # Tabela para exibir os resultados da pesquisa
-        dash_table.DataTable(id='table-cotacoes')
+        dash_table.DataTable(
+            id='table-cotacoes',
+            style_header={'backgroundColor': 'rgb(30, 30, 30)', 'color': 'white'},
+            style_cell={'backgroundColor': 'rgb(50, 50, 50)', 'color': 'white'}
+        )
     ])

@@ -1,0 +1,43 @@
+/* Estilizando o dropdown para tema escuro */
+.dropdown .Select-menu-outer {
+    background-color: rgb(30, 30, 30);
+    color: white;
+}
+
+.dropdown .Select-menu-outer .Select-option {
+    background-color: rgb(30, 30, 30);
+    color: white;
+}
+
+.dropdown .Select-menu-outer .Select-option.is-selected {
+    background-color: rgb(50, 50, 50);
+}
+
+.dropdown .Select-control {
+    background-color: rgb(50, 50, 50);
+    color: white;
+    border: 1px solid rgb(80, 80, 80);
+}
+
+.dropdown .Select-control .Select-value {
+    color: white;
+}
+
+.dropdown .Select-control .Select-placeholder {
+    color: white;
+}
+
+/* Estilizando o botão para tema escuro */
+.btn-dark-theme {
+    background-color: rgb(50, 50, 50);
+    color: white;
+    border: 1px solid rgb(80, 80, 80);
+    padding: 10px 20px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.btn-dark-theme:hover {
+    background-color: rgb(70, 70, 70);
+    border-color: rgb(100, 100, 100);
+}
