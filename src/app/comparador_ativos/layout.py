@@ -16,7 +16,6 @@ def get_ativos_listados_b3():
                                                               ON A.ID = B.ID_ATIVO
                                                               WHERE B.DT_COTACAO IS NOT NULL """,
                                            return_as_dataframe=True)
-
     return df_ativos
 
 
@@ -35,15 +34,12 @@ def comparador_layout():
                 value=[],
                 multi=True,
                 className="dropdown",
-                style={
-                    'backgroundColor': 'rgb(50, 50, 50)',
-                    'color': 'white'
-                }
+                style={'backgroundColor': 'rgb(50, 50, 50)', 'color': 'white'}
             ),
         ], className="form-group"),
 
         # Botão para acionar a pesquisa
-        html.Button(
+        dbc.Button(
             'Pesquisar',
             id='button-pesquisar',
             n_clicks=0,
@@ -52,7 +48,7 @@ def comparador_layout():
 
         # Escolha do tipo de gráfico
         html.Div([
-            html.Label("Escolha o tipo de comparação"),
+            html.Label("Escolha o tipo de comparação", style={'color': 'white'}),
             dcc.RadioItems(
                 id='input-comparacao',
                 options=[
@@ -60,11 +56,12 @@ def comparador_layout():
                     {'label': 'Comparar Rentabilidade', 'value': 'rentabilidade'}
                 ],
                 value='precos',
-                className="radio-items"
+                className="radio-items",
+                style={'color': 'white'}
             ),
         ], className="form-group"),
 
-        # Div para a escolha do período de rentabilidade
+        # Div para a escolha do período de rentabilidade (inicialmente escondido)
         html.Div([
             html.Label("Escolha o período de rentabilidade", style={'color': 'white'}),
             dcc.Dropdown(
@@ -80,12 +77,9 @@ def comparador_layout():
                 ],
                 value='1D',
                 className="dropdown",
-                style={
-                    'backgroundColor': 'rgb(50, 50, 50)',
-                    'color': 'white'
-                }
+                style={'backgroundColor': 'white', 'color': 'rgb(255, 255, 255)'}
             ),
-        ], className="form-group"),
+        ], id='periodo-rentabilidade-container', className="form-group"),
 
         # Div que conterá o gráfico
         html.Div(id='graph-container'),

@@ -11,6 +11,24 @@ SQL_CONN_EMPRESA = SQLServerConnection(database=DatabaseType.EMPRESA, windows_au
 SQL_CONN_ATIVO = SQLServerConnection(database=DatabaseType.ATIVO, windows_auth=True)
 
 
+def calculate_cumulative_returns(df, periodo):
+    # Convertendo os valores de 'VL_FECHAMENTO_AJUSTADO' para float
+    df['VL_FECHAMENTO_AJUSTADO'] = df['VL_FECHAMENTO_AJUSTADO'].astype(float)
+
+    # Define a coluna de data como índice
+    df['DT_COTACAO'] = pd.to_datetime(df['DT_COTACAO'])
+    df.set_index('DT_COTACAO', inplace=True)
+
+    grouped = df.groupby('TICKER').resample(periodo).last().reset_index(level='DT_COTACAO').reset_index(drop=True)
+
+    # Calcula a rentabilidade acumulada ajustada
+    grouped['RENTABILIDADE'] = grouped.groupby('TICKER')['VL_FECHAMENTO_AJUSTADO'].pct_change().fillna(0)
+    grouped['RENTABILIDADE_ACUMULADA'] = grouped.groupby('TICKER')['RENTABILIDADE'].apply(
+        lambda x: (x + 1).cumprod() - 1).reset_index(drop=True)
+
+    return grouped
+
+
 def create_callbacks(app):
     @app.callback(
         Output('table-cotacoes', 'columns'),
@@ -60,7 +78,7 @@ def create_callbacks(app):
 
             # Cria o gráfico de linha
             fig = px.line(df_comparacao, x='DT_COTACAO', y='RENTABILIDADE_ACUMULADA', color='TICKER',
-                          labels={'df_comparacao': 'Data', 'RENTABILIDADE': 'Rentabilidade'},
+                          labels={'DT_COTACAO': 'Data', 'RENTABILIDADE_ACUMULADA': 'Rentabilidade Acumulada'},
                           title='Rentabilidade de Ativos')
 
         else:
@@ -93,19 +111,12 @@ def create_callbacks(app):
 
         return columns, data, graph
 
-
-def calculate_cumulative_returns(df, periodo):
-    # Convertendo os valores de 'VL_FECHAMENTO_AJUSTADO' para float
-    df['VL_FECHAMENTO_AJUSTADO'] = df['VL_FECHAMENTO_AJUSTADO'].astype(float)
-
-    # Define a coluna de data como índice
-    df['DT_COTACAO'] = pd.to_datetime(df['DT_COTACAO'])
-    df.set_index('DT_COTACAO', inplace=True)
-
-    grouped = df.groupby('TICKER').resample(periodo).last().reset_index(level='DT_COTACAO').reset_index(drop=True)
-
-    # Calcula a rentabilidade acumulada ajustada
-    grouped['RENTABILIDADE'] = grouped.groupby('TICKER')['VL_FECHAMENTO_AJUSTADO'].pct_change().fillna(0)
-    grouped['RENTABILIDADE_ACUMULADA'] = grouped.groupby('TICKER')['RENTABILIDADE'].apply(lambda x: (x + 1).cumprod() - 1).reset_index(drop=True)
-
-    return grouped
+    @app.callback(
+        Output('periodo-rentabilidade-container', 'style'),
+        Input('input-comparacao', 'value')
+    )
+    def toggle_periodo_rentabilidade(comparacao):
+        if comparacao == 'rentabilidade':
+            return {'display': 'block'}
+        else:
+            return {'display': 'none'}
