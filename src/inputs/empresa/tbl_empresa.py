@@ -64,6 +64,10 @@ def format_companies(companies: list):
         'market': 'MERCADO'
     }, inplace=True)
 
+    # Ajusta o formato da data de %d/%m/%Y para %Y-%m-%d
+    companies.loc[companies['DT_LISTAGEM'] == '31/12/9999', 'DT_LISTAGEM'] = '11/04/2262'
+    companies['DT_LISTAGEM'] = pd.to_datetime(companies['DT_LISTAGEM'], format='%d/%m/%Y').dt.strftime('%Y-%m-%d')
+
     # Recuperar ID_SEGMENTO
     df_segmento = SQL_CONN.select_data('SELECT * FROM tbl_segmento', return_as_dataframe=True)
     df_segmento.rename(columns={'ID': 'ID_SEGMENTO'}, inplace=True)
@@ -134,6 +138,6 @@ def main():
 if __name__ == '__main__':
     URL = 'https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall/GetInitialCompanies/'
     FIRST_CONFIG = {"language": "pt-br", "pageNumber": 1, "pageSize": 120}
-    SQL_CONN = SQLServerConnection(database=DatabaseType.EMPRESA, windows_auth=True)
+    SQL_CONN = SQLServerConnection(database=DatabaseType.EMPRESA)
 
     main()

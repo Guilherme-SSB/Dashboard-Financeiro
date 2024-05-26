@@ -55,7 +55,7 @@ def cadastrar_segmento():
 
 
 if __name__ == '__main__':
-    sql_conn = SQLServerConnection(database=DatabaseType.EMPRESA, windows_auth=True)
+    sql_conn = SQLServerConnection(database=DatabaseType.EMPRESA)
 
     _xlsx_setores = r"./data/Tabela_Setores.xlsx"
 

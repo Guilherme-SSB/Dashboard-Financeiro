@@ -3,7 +3,7 @@ from src.infra.sql_server import SQLServerConnection
 from src.models.db import DatabaseType
 
 # cria uma conexão com o banco de dados
-sql_conn = SQLServerConnection(database=DatabaseType.EMPRESA, windows_auth=True)
+sql_conn = SQLServerConnection(database=DatabaseType.EMPRESA)
 
 df = pd.read_csv('data/tbl_mercado.csv')
 df.reset_index(inplace=True)

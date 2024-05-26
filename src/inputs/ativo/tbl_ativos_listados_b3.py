@@ -132,8 +132,8 @@ def main():
 if __name__ == '__main__':
     URL = 'https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall/GetDetail/'
     CONFIG_STR = lambda code_cvm: {"codeCVM": code_cvm, "language": "pt-br"}
-    SQL_CONN_EMPRESA = SQLServerConnection(database=DatabaseType.EMPRESA, windows_auth=True)
-    SQL_CONN_ATIVO = SQLServerConnection(database=DatabaseType.ATIVO, windows_auth=True)
+    SQL_CONN_EMPRESA = SQLServerConnection(database=DatabaseType.EMPRESA)
+    SQL_CONN_ATIVO = SQLServerConnection(database=DatabaseType.ATIVO)
 
     HEADERS = {
         'Accept': 'application/json, text/plain, */*',
